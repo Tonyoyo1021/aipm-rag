@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN" data-type="software" data-radius="soft" data-buttons="soft" data-motion="subtle">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <meta name="description" content="基于个人学习资料的 AI PM 问答工作台，回答附检索来源。">
+  <title>知库 · AI PM 学习工作台</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="知识库与设置">
+      <a class="brand" href="/" aria-label="知库首页">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span><strong>知库</strong><small>AI PM 学习工作台</small></span>
+      </a>
+
+      <button class="new-chat button-secondary" id="new-chat" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        开始新问题
+      </button>
+
+      <section class="side-section" aria-labelledby="library-title">
+        <div class="side-heading">
+          <h2 id="library-title">学习资料</h2>
+          <span id="document-count">—</span>
+        </div>
+        <ul class="document-list" id="document-list">
+          <li class="document-placeholder">正在读取知识库…</li>
+        </ul>
+        <div class="library-metric">
+          <strong id="chunk-count">—</strong>
+          <span>个可检索片段</span>
+        </div>
+      </section>
+
+      <section class="side-section settings-section" aria-labelledby="settings-title">
+        <h2 id="settings-title">检索设置</h2>
+        <label for="top-k">每次返回的资料片段</label>
+        <div class="select-wrap">
+          <select id="top-k">
+            <option value="2">Top 2</option>
+            <option value="4" selected>Top 4</option>
+            <option value="6">Top 6</option>
+            <option value="8">Top 8</option>
+          </select>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+        </div>
+        <p>每次提问独立检索，不携带对话历史。</p>
+      </section>
+
+      <div class="sidebar-footer">
+        <span class="status-line"><i class="status-dot" id="side-status-dot"></i><span id="side-status">检查索引状态</span></span>
+        <p id="model-names">本地向量索引</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <main class="chat-panel">
+        <header class="chat-header">
+          <div class="mobile-brand">
+            <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+            <strong>知库</strong>
+          </div>
+          <div class="header-copy">
+            <span class="eyebrow">LEARNING WORKSPACE</span>
+            <h1>今天想弄明白什么？</h1>
+          </div>
+          <div class="header-actions">
+            <span class="index-status"><i class="status-dot" id="header-status-dot"></i><span id="header-status">连接中</span></span>
+            <button class="sources-toggle button-secondary" id="sources-toggle" type="button" aria-controls="sources-panel" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM9 8h6M9 12h6M9 16h4"/></svg>
+              资料 <span id="source-count-mobile"></span>
+            </button>
+          </div>
+        </header>
+
+        <div class="conversation" id="conversation" aria-live="polite">
+          <section class="empty-state" id="empty-state">
+            <div class="empty-copy">
+              <span class="eyebrow">ASK LESS. VERIFY MORE.</span>
+              <h2>从资料出发，<br>把每个答案学明白。</h2>
+              <p>提问两份 AI PM 学习资料。回答只依据检索内容，并把出处放在你看得见的地方。</p>
+            </div>
+            <div class="workflow" aria-label="问答流程">
+              <div><span>01</span><strong>提出问题</strong><small>关于 RAG、评测或 AI 产品</small></div>
+              <div><span>02</span><strong>核对原文</strong><small>查看相似度、标题与完整片段</small></div>
+              <div><span>03</span><strong>形成理解</strong><small>让答案有据可查，而非凭空生成</small></div>
+            </div>
+            <div class="suggestions" aria-label="推荐问题">
+              <p>可以从这里开始</p>
+              <button type="button" class="suggestion" data-question="AI 产品经理应该如何评估 RAG 系统？"><span>01</span>AI 产品经理应该如何评估 RAG 系统？<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
+              <button type="button" class="suggestion" data-question="RAG 和微调应该怎么选？"><span>02</span>RAG 和微调应该怎么选？<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
+              <button type="button" class="suggestion" data-question="如何解释 Embedding 在检索中的作用？"><span>03</span>如何解释 Embedding 在检索中的作用？<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
+            </div>
+          </section>
+          <div id="messages"></div>
+        </div>
+
+        <div class="composer-area">
+          <div class="error-banner" id="error-banner" role="alert" hidden>
+            <span id="error-text"></span>
+            <button type="button" id="retry-button">重试</button>
+          </div>
+          <form class="composer" id="question-form">
+            <label class="sr-only" for="question-input">输入你的学习问题</label>
+            <textarea id="question-input" rows="1" maxlength="2000" placeholder="输入问题，Enter 发送，Shift + Enter 换行" required></textarea>
+            <div class="composer-bottom">
+              <span><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</span>
+              <button class="send-button" id="send-button" type="submit" aria-label="发送问题">
+                <span>发送问题</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+              </button>
+            </div>
+          </form>
+          <p class="composer-note">回答仅来自当前检索资料；重要内容请展开原文核对。</p>
+        </div>
+      </main>
+
+      <aside class="sources-panel" id="sources-panel" aria-label="检索资料">
+        <div class="sources-header">
+          <div>
+            <span class="eyebrow">EVIDENCE</span>
+            <h2>检索资料</h2>
+          </div>
+          <button class="icon-button sources-close" id="sources-close" type="button" aria-label="关闭资料面板">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="sources-summary" id="sources-summary">等待一次提问</div>
+        <div class="sources-content" id="sources-content">
+          <div class="sources-empty">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 8h28v32H10zM17 17h14M17 24h14M17 31h8"/></svg>
+            <h3>答案旁边，就是依据</h3>
+            <p>提问后会展示 Top-K 片段、相似度和标题路径。点击引用编号即可定位。</p>
+          </div>
+        </div>
+        <div class="sources-footer">相似度用于排序，不代表答案置信度。</div>
+      </aside>
+      <button class="sources-backdrop" id="sources-backdrop" type="button" aria-label="关闭资料面板" hidden></button>
+    </div>
+  </div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
